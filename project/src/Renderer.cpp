@@ -43,16 +43,35 @@ void Renderer::Render()
 	//Lock BackBuffer
 	SDL_LockSurface(m_pBackBuffer);
 
+	std::vector<Vector3> vertices_ndc
+	{
+		{   0.f,   0.5f, 1.f },
+		{  0.5f,  -0.5f, 1.f },
+		{ -0.5f,  -0.5f, 1.f },
+	};
+
+	std::vector<Vector3> vertices_screen
+	{
+		{ ((vertices_ndc[0].x + 1.f) / 2) * m_Width, ((1.f - vertices_ndc[0].y) / 2) * m_Height, 1.f },
+		{ ((vertices_ndc[1].x + 1.f) / 2) * m_Width, ((1.f - vertices_ndc[1].y) / 2) * m_Height, 1.f },
+		{ ((vertices_ndc[2].x + 1.f) / 2) * m_Width, ((1.f - vertices_ndc[2].y) / 2) * m_Height, 1.f },
+	};
+
 	//RENDER LOGIC
 	for (int px{}; px < m_Width; ++px)
 	{
 		for (int py{}; py < m_Height; ++py)
 		{
-			float gradient = px / static_cast<float>(m_Width);
-			gradient += py / static_cast<float>(m_Width);
-			gradient /= 2.0f;
+			ColorRGB finalColor{};
 
-			ColorRGB finalColor{ gradient, gradient, gradient };
+			if(PixelIsInTriangle(Vector2{float(px), float(py)}, vertices_screen))
+			{
+				finalColor = { 1.f, 1.f, 1.f };
+			}
+			else
+			{
+				finalColor = { 0.f, 0.f, 0.f };
+			}
 
 			//Update Color in Buffer
 			finalColor.MaxToOne();
@@ -79,4 +98,21 @@ void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_
 bool Renderer::SaveBufferToImage() const
 {
 	return SDL_SaveBMP(m_pBackBuffer, "Rasterizer_ColorBuffer.bmp");
+}
+
+bool Renderer::PixelIsInTriangle(const Vector2& pixel, const std::vector<Vector3>& triangle) const
+{
+	for(int idx{}; idx < 3; ++idx)
+	{
+		Vector2 v1{ triangle[idx].GetXY(), triangle[(idx + 1) % 3].GetXY() };
+		Vector2 v2{ triangle[idx].GetXY(), pixel };
+		
+		float crossProduct = Vector2::Cross(v1, v2);
+
+		if(crossProduct < 0)
+		{
+			return false;
+		}
+	}
+	return true;
 }

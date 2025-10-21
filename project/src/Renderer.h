@@ -32,6 +32,8 @@ namespace dae
 
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const;
 
+		bool PixelIsInTriangle(const Vector2& pixel, const std::vector<Vector3>& triangle) const;
+
 	private:
 		SDL_Window* m_pWindow{};
 
