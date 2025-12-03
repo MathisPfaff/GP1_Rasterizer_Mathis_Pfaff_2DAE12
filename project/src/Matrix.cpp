@@ -1,13 +1,15 @@
 #include "Matrix.h"
+
+#include <cassert>
+
 #include "MathHelpers.h"
 #include <cmath>
-#include <limits>
-#include <cassert>
 
 namespace dae {
 	Matrix::Matrix(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis, const Vector3& t) :
 		Matrix({ xAxis, 0 }, { yAxis, 0 }, { zAxis, 0 }, { t, 1 })
-	{}
+	{
+	}
 
 	Matrix::Matrix(const Vector4& xAxis, const Vector4& yAxis, const Vector4& zAxis, const Vector4& t)
 	{
@@ -89,83 +91,37 @@ namespace dae {
 
 	const Matrix& Matrix::Inverse()
 	{
-		// Create augmented matrix [A|I] where A is this matrix and I is identity.
-		float augmented[4][8];
+		//Optimized Inverse as explained in FGED1 - used widely in other libraries too.
+		const Vector3& a = data[0];
+		const Vector3& b = data[1];
+		const Vector3& c = data[2];
+		const Vector3& d = data[3];
 
-		// Fill left side with current matrix.
-		for (uint8_t i = 0; i < 4; i++)
-		{
-			for (uint8_t j = 0; j < 4; j++)
-			{
-				augmented[i][j] = data[i][j];
-			}
-		}
+		const float x = data[0][3];
+		const float y = data[1][3];
+		const float z = data[2][3];
+		const float w = data[3][3];
 
-		// Fill right side with identity matrix.
-		for (uint8_t i = 0; i < 4; i++)
-		{
-			for (uint8_t j = 4; j < 8; j++)
-			{
-				augmented[i][j] = (i == (j - 4)) ? 1.0f : 0.0f;
-			}
-		}
+		Vector3 s = Vector3::Cross(a, b);
+		Vector3 t = Vector3::Cross(c, d);
+		Vector3 u = a * y - b * x;
+		Vector3 v = c * w - d * z;
 
-		// Gaussian elimination with partial pivoting.
-		for (uint8_t col = 0; col < 4; col++)
-		{
-			// Find the row with the largest absolute value in current column (partial pivoting).
-			int pivot_row = col;
-			float max_val = std::abs(augmented[col][col]);
+		float det = Vector3::Dot(s, v) + Vector3::Dot(t, u);
+		assert((!AreEqual(det, 0.f)) && "ERROR: determinant is 0, there is no INVERSE!");
+		float invDet = 1.f / det;
 
-			for (uint8_t row = col + 1; row < 4; row++)
-			{
-				if (std::abs(augmented[row][col]) > max_val)
-				{
-					max_val = std::abs(augmented[row][col]);
-					pivot_row = row;
-				}
-			}
+		s *= invDet; t *= invDet; u *= invDet; v *= invDet;
 
-			// Check for singular matrix.
-			if (max_val < std::numeric_limits<float>::epsilon())
-			{
-				// Matrix is singular, return identity.
-				*this = CreateIdentity();
-				return *this;
-			}
+		Vector3 r0 = Vector3::Cross(b, v) + t * y;
+		Vector3 r1 = Vector3::Cross(v, a) - t * x;
+		Vector3 r2 = Vector3::Cross(d, u) + s * w;
+		Vector3 r3 = Vector3::Cross(u, c) - s * z;
 
-			// Swap rows if needed.
-			if (pivot_row != col)
-			{
-				for (uint8_t j = 0; j < 8; j++)
-				{
-					std::swap(augmented[col][j], augmented[pivot_row][j]);
-				}
-			}
-
-			// Scale pivot row to make diagonal element 1.
-			const float pivot = augmented[col][col];
-			for (uint8_t j = 0; j < 8; j++)
-				augmented[col][j] /= pivot;
-
-			// Eliminate other elements in this column.
-			for (uint8_t row = 0; row < 4; row++)
-			{
-				if (row != col)
-				{
-					const float factor = augmented[row][col];
-					for (uint8_t j = 0; j < 8; j++)
-						augmented[row][j] -= factor * augmented[col][j];
-				}
-			}
-		}
-
-		// Extract inverse matrix from right side of augmented matrix.
-		for (uint8_t i = 0; i < 4; i++)
-		{
-			for (uint8_t j = 0; j < 4; j++)
-				data[i][j] = augmented[i][j + 4];
-		}
+		data[0] = Vector4{ r0.x, r1.x, r2.x, 0.f };
+		data[1] = Vector4{ r0.y, r1.y, r2.y, 0.f };
+		data[2] = Vector4{ r0.z, r1.z, r2.z, 0.f };
+		data[3] = { { -Vector3::Dot(b, t)},{Vector3::Dot(a, t)},{-Vector3::Dot(d, s)},{Vector3::Dot(c, s)} };
 
 		return *this;
 	}
@@ -186,16 +142,24 @@ namespace dae {
 		return out;
 	}
 
-	Matrix Matrix::CreateLookAtLH(const Vector3& origin, const Vector3& forward, const Vector3& up)
+	Matrix Matrix::CreateLookAtLH(const Vector3& origin, const Vector3& forward)
 	{
-		//TODO
-		return {};
+
+		Vector3 right = Vector3{ Vector3::Cross(Vector3::UnitY, forward).Normalized() };
+		Vector3 up = Vector3{ Vector3::Cross(forward, right).Normalized() };
+
+		return Matrix{ right, up, forward, origin }.Inverse();
 	}
 
 	Matrix Matrix::CreatePerspectiveFovLH(float fov, float aspect, float zn, float zf)
 	{
-		//TODO
-		return {};
+		return Matrix
+		{
+			Vector4{ ((1.0f) / (aspect * fov)), 0.0f, 0.0f, 0.0f },
+			Vector4{ 0.0f, ((1.0f) / (fov)), 0.0f, 0.0f},
+			Vector4{ 0.0f, 0.0f, ((zf) / (zf - zn)), 1.0f },
+			Vector4{ 0.0f, 0.0f, -((zf * zn) / (zf - zn)), 0.0f }
+		};
 	}
 
 	Vector3 Matrix::GetAxisX() const
@@ -216,11 +180,6 @@ namespace dae {
 	Vector3 Matrix::GetTranslation() const
 	{
 		return data[3];
-	}
-
-	Matrix Matrix::CreateIdentity()
-	{
-		return Matrix{};
 	}
 
 	Matrix Matrix::CreateTranslation(float x, float y, float z)
@@ -328,18 +287,13 @@ namespace dae {
 		return *this;
 	}
 
-	void Matrix::AsColMajArray(float out[4][4]) const
+	bool Matrix::operator==(const Matrix& m) const
 	{
-		for (int v = 0; v < 4; ++v)
-		{
-			for (int w = 0; w < 4; ++w)
-			{
-				out[v][w] = data[v][w];
-				out[v][w] = data[v][w];
-				out[v][w] = data[v][w];
-				out[v][w] = data[v][w];
-			}
-		}
+		return data[0] == m.data[0]
+		    && data[1] == m.data[1]
+			&& data[2] == m.data[2]
+			&& data[3] == m.data[3];
 	}
+
 #pragma endregion
 }

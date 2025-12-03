@@ -3,7 +3,7 @@
 #include "Vector4.h"
 
 namespace dae {
-	struct Matrix final
+	struct Matrix
 	{
 		Matrix() = default;
 		Matrix(
@@ -11,11 +11,13 @@ namespace dae {
 			const Vector3& yAxis,
 			const Vector3& zAxis,
 			const Vector3& t);
+
 		Matrix(
 			const Vector4& xAxis,
 			const Vector4& yAxis,
 			const Vector4& zAxis,
 			const Vector4& t);
+
 		Matrix(const Matrix& m);
 
 		Vector3 TransformVector(const Vector3& v) const;
@@ -34,7 +36,6 @@ namespace dae {
 		Vector3 GetAxisZ() const;
 		Vector3 GetTranslation() const;
 
-		static Matrix CreateIdentity();
 		static Matrix CreateTranslation(float x, float y, float z);
 		static Matrix CreateTranslation(const Vector3& t);
 		static Matrix CreateRotationX(float pitch);
@@ -47,17 +48,17 @@ namespace dae {
 		static Matrix Transpose(const Matrix& m);
 		static Matrix Inverse(const Matrix& m);
 
-		static Matrix CreateLookAtLH(const Vector3& origin, const Vector3& forward, const Vector3& up);
+		static Matrix CreateLookAtLH(const Vector3& origin, const Vector3& forward);
 		static Matrix CreatePerspectiveFovLH(float fovy, float aspect, float zn, float zf);
 
 		Vector4& operator[](int index);
 		Vector4 operator[](int index) const;
 		Matrix operator*(const Matrix& m) const;
 		const Matrix& operator*=(const Matrix& m);
-
-		void AsColMajArray(float out[4][4]) const;
+		bool operator==(const Matrix& m) const;
 
 	private:
+
 		//Row-Major Matrix
 		Vector4 data[4]
 		{

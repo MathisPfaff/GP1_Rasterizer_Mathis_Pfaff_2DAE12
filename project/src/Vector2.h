@@ -2,7 +2,7 @@
 
 namespace dae
 {
-	struct Vector2 final
+	struct Vector2
 	{
 		float x{};
 		float y{};
@@ -25,12 +25,15 @@ namespace dae
 		Vector2 operator+(const Vector2& v) const;
 		Vector2 operator-(const Vector2& v) const;
 		Vector2 operator-() const;
+		//Vector2& operator-();
 		Vector2& operator+=(const Vector2& v);
 		Vector2& operator-=(const Vector2& v);
 		Vector2& operator/=(float scale);
 		Vector2& operator*=(float scale);
 		float& operator[](int index);
 		float operator[](int index) const;
+
+		bool operator==(const Vector2& v) const;
 
 		static const Vector2 UnitX;
 		static const Vector2 UnitY;

@@ -15,14 +15,7 @@ namespace dae
 #pragma warning(disable : 4505) //Warning unreferenced local function
 		static bool ParseOBJ(const std::string& filename, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, bool flipAxisAndWinding = true)
 		{
-#ifdef DISABLE_OBJ
-
-			//TODO: Enable the code below after uncommenting all the vertex attributes of DataTypes::Vertex
-			// >> Comment/Remove '#define DISABLE_OBJ'
-			assert(false && "OBJ PARSER not enabled! Check the comments in Utils::ParseOBJ");
-
-#else
-
+			//Deleted the define (Didn't see use for it staying in the code)
 			std::ifstream file(filename);
 			if (!file)
 				return false;
@@ -169,7 +162,6 @@ namespace dae
 			}
 
 			return true;
-#endif
 		}
 #pragma warning(pop)
 	}

@@ -1,21 +1,20 @@
 #pragma once
+
+//Standard includes
 #include <cstdint>
-#include <vector>
 
 namespace dae
 {
-	class Timer final
+	class Timer
 	{
 	public:
 		Timer();
-		~Timer() = default;
+		virtual ~Timer() = default;
 
 		Timer(const Timer&) = delete;
 		Timer(Timer&&) noexcept = delete;
 		Timer& operator=(const Timer&) = delete;
 		Timer& operator=(Timer&&) noexcept = delete;
-
-		void StartBenchmark(int numFrames = 10);
 
 		void Reset();
 		void Start();
@@ -47,13 +46,5 @@ namespace dae
 
 		bool m_IsStopped = true;
 		bool m_ForceElapsedUpperBound = false;
-
-		bool m_BenchmarkActive = false;
-		float m_BenchmarkHigh{ 0.f };
-		float m_BenchmarkLow{ 0.f };
-		float m_BenchmarkAvg{ 0.f };
-		int m_BenchmarkFrames{ 0 };
-		int m_BenchmarkCurrFrame{ 0 };
-		std::vector<float> m_Benchmarks{};
 	};
 }

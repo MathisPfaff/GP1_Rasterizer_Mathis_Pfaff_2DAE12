@@ -1,4 +1,7 @@
 //External includes
+#ifdef ENABLE_VLD
+#include "vld.h"
+#endif
 #include "SDL.h"
 #include "SDL_surface.h"
 #undef main
@@ -9,9 +12,6 @@
 //Project includes
 #include "Timer.h"
 #include "Renderer.h"
-#if defined(_DEBUG)
-#include "LeakDetector.h"
-#endif
 
 using namespace dae;
 
@@ -27,11 +27,6 @@ int main(int argc, char* args[])
 	(void)argc;
 	(void)args;
 
-	// Leak detection
-	#if defined(_DEBUG)
-		LeakDetector detector{};
-	#endif
-
 	//Create window + surfaces
 	SDL_Init(SDL_INIT_VIDEO);
 
@@ -39,7 +34,7 @@ int main(int argc, char* args[])
 	const uint32_t height = 480;
 
 	SDL_Window* pWindow = SDL_CreateWindow(
-		"Rasterizer - Mathis Pfaff",
+		"Rasterizer - **Mathis Pfaff**",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		width, height, 0);
@@ -72,8 +67,21 @@ int main(int argc, char* args[])
 				isLooping = false;
 				break;
 			case SDL_KEYUP:
-				if (e.key.keysym.scancode == SDL_SCANCODE_X)
+				if (e.key.keysym.scancode == SDL_SCANCODE_X) 
 					takeScreenshot = true;
+
+				else if (e.key.keysym.scancode == SDL_SCANCODE_F4)
+					pRenderer->SwitchDepthBuffer();
+
+				else if (e.key.keysym.scancode == SDL_SCANCODE_F5) 
+					pRenderer->ToggleRotateMesh();
+
+				else if (e.key.keysym.scancode == SDL_SCANCODE_F6) 
+					pRenderer->ToggleNormalMap();
+
+				else if (e.key.keysym.scancode == SDL_SCANCODE_F7) 
+					pRenderer->SwitchRenderMode();
+
 				break;
 			}
 		}

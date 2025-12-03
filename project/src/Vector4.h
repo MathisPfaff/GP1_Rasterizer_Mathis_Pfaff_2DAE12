@@ -4,7 +4,7 @@ namespace dae
 {
 	struct Vector2;
 	struct Vector3;
-	struct Vector4 final
+	struct Vector4
 	{
 		float x;
 		float y;
