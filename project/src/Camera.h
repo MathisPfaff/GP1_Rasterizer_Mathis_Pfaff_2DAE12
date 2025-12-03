@@ -11,22 +11,21 @@ namespace dae
 	struct Camera
 	{
 		Camera() = default;
-
 		Camera(const Vector3& _origin, float _fovAngle)
 			: origin(_origin),
 			  fovAngle(_fovAngle),
 			  fov(tanf((_fovAngle * TO_RADIANS) / 2.f))
-		{
-		}
+		{}
+
 		float fovAngle{ 90.f };
 		float fov{ tanf((fovAngle * TO_RADIANS) / 2.f) };
 
 		float totalPitch{};
 		float totalYaw{};
 
-		float aspectRatio{ 1.f };
-		float near{ 1.f };
-		float far{ 1000.f };
+		float aspectRatio{};
+		float near{ 0.1f };
+		float far{ 100.f };
 
 		Vector3 origin{};
 		Vector3 forward{ Vector3::UnitZ };
@@ -38,28 +37,28 @@ namespace dae
 		Matrix projMatrix{};
 
 
-		void Initialize(float _fovAngle = 60.f, const Vector3& _origin = {0.f, 0.f, -10.f})
+		void Initialize(float _fovAngle = 60.f, const Vector3& _origin = {0.f, 0.f, -10.f}, float _aspectRatio = 1.f)
 		{
 			fovAngle = _fovAngle;
 			fov = tanf((_fovAngle * TO_RADIANS) / 2.f);
 			origin = _origin;
+			aspectRatio = _aspectRatio;
 		}
 
 		void CalculateViewMatrix()
 		{
 			viewMatrix = Matrix::CreateLookAtLH(origin, forward);
-			// DirectX Implementation => https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxmatrixlookatlh
 		}
 
 		void CalculateProjectionMatrix()
 		{
 			projMatrix = Matrix::CreatePerspectiveFovLH(fov, aspectRatio, near, far);
-			// DirectX Implementation => https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxmatrixperspectivefovlh
 		}
 
 		void Update(Timer* pTimer)
 		{
 			const float deltaTime = pTimer->GetElapsed();
+
 			const float moveSpeed = 20.0f * deltaTime;
 			const float rotateSpeed = dae::TO_RADIANS * 5.0f * deltaTime;
 
@@ -67,13 +66,25 @@ namespace dae
 			const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
 
 			if (pKeyboardState[SDL_SCANCODE_W] || pKeyboardState[SDL_SCANCODE_UP])
+			{
 				origin += forward * moveSpeed;
+			}
+				
 			if (pKeyboardState[SDL_SCANCODE_S] || pKeyboardState[SDL_SCANCODE_DOWN])
+			{
 				origin -= forward * moveSpeed;
+			}
+				
 			if (pKeyboardState[SDL_SCANCODE_D] || pKeyboardState[SDL_SCANCODE_RIGHT])
+			{
 				origin += right * moveSpeed;
+			}
+				
 			if (pKeyboardState[SDL_SCANCODE_A] || pKeyboardState[SDL_SCANCODE_LEFT])
+			{
 				origin -= right * moveSpeed;
+			}
+				
 
 			// Mouse Input
 			int mouseX{}, mouseY{};
@@ -99,7 +110,8 @@ namespace dae
 			}
 
 			Matrix rotationMatrix = Matrix::CreateRotation(totalPitch, totalYaw, 0.0f);
-			forward = rotationMatrix.TransformVector(Vector3::UnitZ).Normalized();
+			forward = rotationMatrix.TransformVector(Vector3::UnitZ);
+			forward.Normalize();
 
 			// Update Matrices
 			CalculateViewMatrix();

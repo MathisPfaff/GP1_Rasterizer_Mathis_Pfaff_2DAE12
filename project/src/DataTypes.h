@@ -48,7 +48,11 @@ namespace dae
 			worldMatrix{}
 		{
 			vertices_out.reserve(vertices.size());
-			for (int i{}; i < vertices.size(); ++i) vertices_out.emplace_back(Vertex_Out{});
+
+			for (int i{}; i < vertices.size(); ++i)
+			{
+				vertices_out.emplace_back(Vertex_Out{});
+			}
 		}
 
 

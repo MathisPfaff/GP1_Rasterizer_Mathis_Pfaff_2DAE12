@@ -21,7 +21,11 @@ namespace dae
 
 		enum class RenderMode
 		{
-			COMBINED, OBSERVEDAREA, DIFFUSE, SPECULAR, DEPTHBUFFER
+			COMBINED, 
+			OBSERVEDAREA, 
+			DIFFUSE, 
+			SPECULAR, 
+			DEPTHBUFFER
 		};
 
 		Renderer(SDL_Window* pWindow);

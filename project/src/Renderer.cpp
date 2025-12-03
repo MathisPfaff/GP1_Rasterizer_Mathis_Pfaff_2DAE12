@@ -15,7 +15,7 @@ using namespace dae;
 Renderer::Renderer(SDL_Window* pWindow) :
 	m_pWindow(pWindow),
 	m_RenderMode{ RenderMode::COMBINED },
-	m_LightDirection{ .577f, -.577f, .577f }, //Directional Light
+	m_LightDirection{ .577f, -.577f, .577f },
 	m_LightIntensity{ 7.f },
 	m_RotateTimer{},
 	m_Shininess{ 25.f },
@@ -35,16 +35,12 @@ Renderer::Renderer(SDL_Window* pWindow) :
 	for (int idx{}; idx < m_AllPixels; ++idx) m_PixelIndices.emplace_back(idx);
 
 	//Initialize Camera
-	m_Camera.origin = Vector3{ 0.0f, 5.0f, -64.f };
-	m_Camera.fov = tanf((45.0f * TO_RADIANS) / 2.0f);
-	m_Camera.near = .1f;
-	m_Camera.far = 100.0f;
+	m_Camera.Initialize(45.f, Vector3{ 0.f, 5.f, -30.f }, float(m_Width) / float(m_Height));
 	m_Camera.CalculateProjectionMatrix();
 	m_Camera.CalculateViewMatrix();
 
 	//Load Textures
 	m_pDiffuseMap = std::unique_ptr<Texture>(Texture::LoadFromFile("Resources/vehicle_diffuse.png"));
-
 	m_pGlossMap = std::unique_ptr<Texture>(Texture::LoadFromFile("Resources/vehicle_gloss.png"));
 	m_pNormalMap = std::unique_ptr<Texture>(Texture::LoadFromFile("Resources/vehicle_normal.png"));
 	m_pSpecularMap = std::unique_ptr<Texture>(Texture::LoadFromFile("Resources/vehicle_specular.png"));
@@ -54,10 +50,15 @@ Renderer::Renderer(SDL_Window* pWindow) :
 	for (int idx{}; idx < m_AllPixels; ++idx) m_pDepthBufferPixels[idx] = FLT_MAX;
 
 	//Load Mesh
-	std::vector<Vertex> vertices{};
-	std::vector<uint32_t> indices{};
-	Utils::ParseOBJ("Resources/vehicle.obj", vertices, indices);
-	m_Meshes.emplace_back(Mesh{ vertices, indices, PrimitiveTopology::TriangleList });
+	std::vector<Vertex> tempVertices{};
+	std::vector<uint32_t> tempIndices{};
+
+	Utils::ParseOBJ("Resources/vehicle.obj", tempVertices, tempIndices);
+
+	Mesh tempMesh{ tempVertices, tempIndices, PrimitiveTopology::TriangleList };
+	tempMesh.worldMatrix = Matrix::CreateTranslation(0.f, 0.f, 50.f);
+
+	m_Meshes.emplace_back(tempMesh);
 }
 
 Renderer::~Renderer()
@@ -90,7 +91,7 @@ void Renderer::Update(Timer* pTimer)
 	if (m_RotateMesh)
 	{
 		m_RotateTimer += pTimer->GetElapsed();
-		m_Meshes[0].worldMatrix = Matrix::CreateRotationY(m_RotateTimer);
+		m_Meshes[0].worldMatrix = Matrix::CreateRotationY(m_RotateTimer) * Matrix::CreateTranslation(0.f, 0.f, 50.f);
 	}
 }
 
@@ -160,9 +161,9 @@ void Renderer::Render()
 
 	for (Mesh& mesh : m_Meshes)
 	{
-		int skipVertices = 0;
-		int vertexIncrement = 0;
-		size_t frustumVerticesCount = 0;
+		int skipVertices{};
+		int vertexIncrement{};
+		size_t frustumVerticesCount{};
 
 		// Determine parameters based on topology type
 		if (mesh.primitiveTopology == PrimitiveTopology::TriangleList)
@@ -385,14 +386,14 @@ void Renderer::PixelShading(const Vertex_Shader& shaderVertex, int indexBuffer)
 	{
 		const float sampledSpecular{ m_pSpecularMap->Sample(shaderVertex.uv).r };
 		const float sampledPhongExponent{ m_pGlossMap->Sample(shaderVertex.uv).r };
-		color = observedArea * BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, -m_LightDirection, shaderVertex.viewDirection, normal);
+		color = observedArea * BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, m_LightDirection, shaderVertex.viewDirection, normal);
 		break;
 	}
 	case RenderMode::COMBINED:
 	{
 		const float sampledSpecular{ m_pSpecularMap->Sample(shaderVertex.uv).r };
 		const float sampledPhongExponent{ m_pGlossMap->Sample(shaderVertex.uv).r };
-		color = m_pDiffuseMap->Sample(shaderVertex.uv) + BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, -m_LightDirection, shaderVertex.viewDirection, normal) + m_Ambient;
+		color = m_pDiffuseMap->Sample(shaderVertex.uv) + BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, m_LightDirection, shaderVertex.viewDirection, normal) + m_Ambient;
 		break;
 	}
 	}
