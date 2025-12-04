@@ -1,11 +1,8 @@
-#include "Vector4.h"
-
 #include <cassert>
-
+#include <cmath>
 #include "Vector2.h"
 #include "Vector3.h"
-#include <cmath>
-
+#include "Vector4.h"
 #include "MathHelpers.h"
 
 namespace dae
@@ -15,7 +12,7 @@ namespace dae
 
 	float Vector4::Magnitude() const
 	{
-		return sqrtf(x * x + y * y + z * z + w * w);
+		return std::sqrt(x * x + y * y + z * z + w * w);
 	}
 
 	float Vector4::SqrMagnitude() const
@@ -104,6 +101,5 @@ namespace dae
 	{
 		return AreEqual(x, v.x, .000001f) && AreEqual(y, v.y, .000001f) && AreEqual(z, v.z, .000001f) && AreEqual(w, v.w, .000001f);
 	}
-
 #pragma endregion
 }

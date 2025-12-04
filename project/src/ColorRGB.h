@@ -3,7 +3,7 @@
 
 namespace dae
 {
-	struct ColorRGB
+	struct ColorRGB final
 	{
 		float r{};
 		float g{};
@@ -21,7 +21,7 @@ namespace dae
 			return { Lerpf(c1.r, c2.r, factor), Lerpf(c1.g, c2.g, factor), Lerpf(c1.b, c2.b, factor) };
 		}
 
-		#pragma region ColorRGB (Member) Operators
+#pragma region ColorRGB (Member) Operators
 		const ColorRGB& operator+=(const ColorRGB& c)
 		{
 			r += c.r;
@@ -73,7 +73,7 @@ namespace dae
 			return *this;
 		}
 
-		const ColorRGB& operator/(const ColorRGB& c) const
+		const ColorRGB operator/(const ColorRGB& c) const
 		{
 			return { r / c.r, g / c.g, b / c.b };
 		}
@@ -101,11 +101,11 @@ namespace dae
 			return *this;
 		}
 
-		const ColorRGB& operator/(float s) const
+		const ColorRGB operator/(float s) const
 		{
 			return { r / s, g / s, b / s };
 		}
-		#pragma endregion
+#pragma endregion
 	};
 
 	//ColorRGB (Global) Operators

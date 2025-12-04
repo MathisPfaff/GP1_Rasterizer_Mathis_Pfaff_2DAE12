@@ -1,10 +1,6 @@
 #include "Vector2.h"
-
 #include <cassert>
-
 #include <cmath>
-
-#include "MathHelpers.h"
 
 namespace dae {
 	const Vector2 Vector2::UnitX = Vector2{ 1, 0 };
@@ -12,7 +8,6 @@ namespace dae {
 	const Vector2 Vector2::Zero = Vector2{ 0, 0 };
 
 	Vector2::Vector2(float _x, float _y) : x(_x), y(_y) {}
-
 
 	Vector2::Vector2(const Vector2& from, const Vector2& to) : x(to.x - from.x), y(to.y - from.y) {}
 
@@ -38,7 +33,7 @@ namespace dae {
 	Vector2 Vector2::Normalized() const
 	{
 		const float m = Magnitude();
-		return { x / m, y / m};
+		return { x / m, y / m };
 	}
 
 	float Vector2::Dot(const Vector2& v1, const Vector2& v2)
@@ -115,11 +110,6 @@ namespace dae {
 	{
 		assert(index <= 1 && index >= 0);
 		return index == 0 ? x : y;
-	}
-
-	bool Vector2::operator==(const Vector2& v) const
-	{
-		return AreEqual(x, v.x) && AreEqual(y, v.y);
 	}
 #pragma endregion
 }
