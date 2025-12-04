@@ -12,14 +12,12 @@ namespace dae
 		 */
 		static ColorRGB Lambert(float kd, const ColorRGB& cd)
 		{
-			ColorRGB rho = cd * kd;
-			return rho / PI;
+			return (cd * kd) / PI;
 		}
 
 		static ColorRGB Lambert(const ColorRGB& kd, const ColorRGB& cd)
 		{
-			ColorRGB rho = cd * kd;
-			return rho / PI;
+			return (cd * kd) / PI;
 		}
 
 		/**
@@ -37,64 +35,5 @@ namespace dae
 			float cos = std::clamp(Vector3::Dot(r, v), 0.f, 1.0f);
 			return ks * powf(cos, exp) * colors::White;
 		}
-
-		/**
-		 * \brief BRDF Fresnel Function >> Schlick
-		 * \param h Normalized Halfvector between View and Light directions
-		 * \param v Normalized View direction
-		 * \param f0 Base reflectivity of a surface based on IOR (Indices Of Refrection), this is different for Dielectrics (Non-Metal) and Conductors (Metal)
-		 * \return
-		 */
-		static ColorRGB FresnelFunction_Schlick(const Vector3& h, const Vector3& v, const ColorRGB& f0)
-		{
-			float dot = Vector3::Dot(h, v);
-			ColorRGB schlick = f0 + ((colors::White - f0) * ((1 - dot) * (1 - dot) * (1 - dot) * (1 - dot) * (1 - dot)));
-			return schlick;
-		}
-
-		/**
-		 * \brief BRDF NormalDistribution >> Trowbridge-Reitz GGX (UE4 implemetation - squared(roughness))
-		 * \param n Surface normal
-		 * \param h Normalized half vector
-		 * \param roughness Roughness of the material
-		 * \return BRDF Normal Distribution Term using Trowbridge-Reitz GGX
-		 */
-		static float NormalDistribution_GGX(const Vector3& n, const Vector3& h, float roughness)
-		{
-			float alphaSquared = (roughness * roughness * roughness * roughness);
-			float extra = (Vector3::Dot(n, h) * Vector3::Dot(n, h)) * (alphaSquared - 1) + 1;
-			float result = alphaSquared / (PI * (extra * extra));
-			return result;
-		}
-
-
-		/**
-		 * \brief BRDF Geometry Function >> Schlick GGX (Direct Lighting + UE4 implementation - squared(roughness))
-		 * \param n Normal of the surface
-		 * \param v Normalized view direction
-		 * \param roughness Roughness of the material
-		 * \return BRDF Geometry Term using SchlickGGX
-		 */
-		static float GeometryFunction_SchlickGGX(const Vector3& n, const Vector3& v, float roughness)
-		{
-			float alpha = (roughness * roughness);
-			float k = ((alpha + 1) * (alpha + 1)) / 8;
-			float dot{ std::max(0.f, Vector3::Dot(n,v)) };
-			return dot / (dot * (1 - k) + k);
-		}
-
-		/**
-		 * \brief BRDF Geometry Function >> Smith (Direct Lighting)
-		 * \param n Normal of the surface
-		 * \param v Normalized view direction
-		 * \param l Normalized light direction
-		 * \param roughness Roughness of the material
-		 * \return BRDF Geometry Term using Smith (> SchlickGGX(n,v,roughness) * SchlickGGX(n,l,roughness))
-		 */
-		static float GeometryFunction_Smith(const Vector3& n, const Vector3& v, const Vector3& l, float roughness)
-		{
-			return GeometryFunction_SchlickGGX(n, v, roughness) * GeometryFunction_SchlickGGX(n, l, roughness);
-		}
-
 	}
 }
