@@ -1,6 +1,7 @@
 #pragma once
 #include <cfloat>
 #include <cmath>
+#include <algorithm>
 
 namespace dae
 {

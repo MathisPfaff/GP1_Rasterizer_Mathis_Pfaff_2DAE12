@@ -1,7 +1,4 @@
 //External includes
-#ifdef ENABLE_VLD
-#include "vld.h"
-#endif
 #include "SDL.h"
 #include "SDL_surface.h"
 #undef main
@@ -12,6 +9,9 @@
 //Project includes
 #include "Timer.h"
 #include "Renderer.h"
+#if defined(_DEBUG)
+#include "LeakDetector.h"
+#endif
 
 using namespace dae;
 
@@ -26,6 +26,11 @@ int main(int argc, char* args[])
 	//Unreferenced parameters
 	(void)argc;
 	(void)args;
+
+	// Leak detection
+	#if defined(_DEBUG)
+		LeakDetector detector{};
+	#endif
 
 	//Create window + surfaces
 	SDL_Init(SDL_INIT_VIDEO);

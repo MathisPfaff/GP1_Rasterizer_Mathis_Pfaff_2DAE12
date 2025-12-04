@@ -63,7 +63,7 @@ namespace dae
 		std::vector<Mesh> m_Meshes;
 
 		float* m_pDepthBufferPixels{};
-		float m_AllPixels{};
+		int m_AllPixels{};
 		std::vector<int> m_PixelIndices;
 
 		Camera m_Camera{};

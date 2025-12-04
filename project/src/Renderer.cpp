@@ -15,7 +15,7 @@ using namespace dae;
 Renderer::Renderer(SDL_Window* pWindow) :
 	m_pWindow(pWindow),
 	m_RenderMode{ RenderMode::COMBINED },
-	m_LightDirection{ .577f, -.577f, .577f },
+	m_LightDirection{ 0.577f, -0.577f, 0.577f },
 	m_LightIntensity{ 7.f },
 	m_RotateTimer{},
 	m_Shininess{ 25.f },
@@ -47,7 +47,10 @@ Renderer::Renderer(SDL_Window* pWindow) :
 
 	//Initialize Depth Buffer
 	m_pDepthBufferPixels = new float[m_AllPixels];
-	for (int idx{}; idx < m_AllPixels; ++idx) m_pDepthBufferPixels[idx] = FLT_MAX;
+	for (int idx{}; idx < m_AllPixels; ++idx)
+	{
+		m_pDepthBufferPixels[idx] = FLT_MAX;
+	}
 
 	//Load Mesh
 	std::vector<Vertex> tempVertices{};
@@ -365,6 +368,8 @@ void Renderer::PixelShading(const Vertex_Shader& shaderVertex, int indexBuffer)
 
 	const float observedArea{ std::clamp(Vector3::Dot(-m_LightDirection, normal), 0.0f, 1.0f) };
 
+	
+	
 	switch (m_RenderMode)
 	{
 	case RenderMode::DEPTHBUFFER:
@@ -393,11 +398,13 @@ void Renderer::PixelShading(const Vertex_Shader& shaderVertex, int indexBuffer)
 	{
 		const float sampledSpecular{ m_pSpecularMap->Sample(shaderVertex.uv).r };
 		const float sampledPhongExponent{ m_pGlossMap->Sample(shaderVertex.uv).r };
-		color = m_pDiffuseMap->Sample(shaderVertex.uv) + BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, m_LightDirection, shaderVertex.viewDirection, normal) + m_Ambient;
+		color = observedArea * BRDF::Lambert(m_LightIntensity, m_pDiffuseMap->Sample(shaderVertex.uv)) +
+			observedArea * BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, m_LightDirection, shaderVertex.viewDirection, normal) +
+			m_Ambient;
 		break;
 	}
 	}
-
+	
 	color.MaxToOne();
 
 	m_pBackBufferPixels[indexBuffer] = SDL_MapRGB(m_pBackBuffer->format,
