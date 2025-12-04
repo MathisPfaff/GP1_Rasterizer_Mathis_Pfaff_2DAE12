@@ -1,10 +1,8 @@
 #pragma once
-
 #include <cstdint>
 #include <vector>
-#include "DataTypes.h"
-
 #include "Camera.h"
+#include "DataTypes.h"
 
 struct SDL_Window;
 struct SDL_Surface;
@@ -19,13 +17,12 @@ namespace dae
 	{
 	public:
 
-		enum class RenderMode
+		enum class ShadingMode
 		{
 			COMBINED, 
 			OBSERVEDAREA, 
 			DIFFUSE, 
-			SPECULAR, 
-			DEPTHBUFFER
+			SPECULAR
 		};
 
 		Renderer(SDL_Window* pWindow);
@@ -42,7 +39,7 @@ namespace dae
 		void SwitchDepthBuffer();
 		void ToggleNormalMap();
 		void ToggleRotateMesh();
-		void SwitchRenderMode();
+		void CycleShadingMode();
 
 	private:
 		SDL_Window* m_pWindow{};
@@ -55,10 +52,13 @@ namespace dae
 		std::unique_ptr<Texture> m_pGlossMap;
 		std::unique_ptr<Texture> m_pNormalMap;
 		std::unique_ptr<Texture> m_pSpecularMap;
+
 		const float m_Shininess;
 		const float m_LightIntensity;
+
 		bool m_UseNormalMap{ true };
-		RenderMode m_RenderMode;
+		bool m_DepthBufferEnabled{ false };
+		ShadingMode m_ShadingMode;
 
 		std::vector<Mesh> m_Meshes;
 
@@ -77,10 +77,14 @@ namespace dae
 		bool m_RotateMesh{ true };
 		float m_RotateTimer;
 
-		void PixelShading(const Vertex_Shader& shaderVertex, int indexBuffer);
+		
 		Uint32 ColorToUint32(const ColorRGB& color);
+
 		bool InsideFrustum(const Vertex_Out& vertex) const;
+
 		float Remap(float v, float min, float max) const;
+
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices, std::vector<Vertex_Out>& verticesOut, const Matrix& worldMatrix) const;
+		void PixelShading(const Vertex_Shader& shaderVertex, int indexBuffer);
 	};
 }

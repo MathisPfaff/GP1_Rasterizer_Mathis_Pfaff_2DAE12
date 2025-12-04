@@ -14,7 +14,7 @@ using namespace dae;
 
 Renderer::Renderer(SDL_Window* pWindow) :
 	m_pWindow(pWindow),
-	m_RenderMode{ RenderMode::COMBINED },
+	m_ShadingMode{ ShadingMode::COMBINED },
 	m_LightDirection{ 0.577f, -0.577f, 0.577f },
 	m_LightIntensity{ 7.f },
 	m_RotateTimer{},
@@ -32,7 +32,17 @@ Renderer::Renderer(SDL_Window* pWindow) :
 
 	m_AllPixels = m_Width * m_Height;
 	m_PixelIndices.reserve(m_AllPixels);
-	for (int idx{}; idx < m_AllPixels; ++idx) m_PixelIndices.emplace_back(idx);
+
+	for (int idx{}; idx < m_AllPixels; ++idx)
+	{
+		m_PixelIndices.emplace_back(idx);
+	}
+
+	m_pDepthBufferPixels = new float[m_AllPixels];
+	for (int idx{}; idx < m_AllPixels; ++idx)
+	{
+		m_pDepthBufferPixels[idx] = FLT_MAX;
+	}
 
 	//Initialize Camera
 	m_Camera.Initialize(45.f, Vector3{ 0.f, 5.f, -30.f }, float(m_Width) / float(m_Height));
@@ -44,13 +54,6 @@ Renderer::Renderer(SDL_Window* pWindow) :
 	m_pGlossMap = std::unique_ptr<Texture>(Texture::LoadFromFile("Resources/vehicle_gloss.png"));
 	m_pNormalMap = std::unique_ptr<Texture>(Texture::LoadFromFile("Resources/vehicle_normal.png"));
 	m_pSpecularMap = std::unique_ptr<Texture>(Texture::LoadFromFile("Resources/vehicle_specular.png"));
-
-	//Initialize Depth Buffer
-	m_pDepthBufferPixels = new float[m_AllPixels];
-	for (int idx{}; idx < m_AllPixels; ++idx)
-	{
-		m_pDepthBufferPixels[idx] = FLT_MAX;
-	}
 
 	//Load Mesh
 	std::vector<Vertex> tempVertices{};
@@ -69,17 +72,20 @@ Renderer::~Renderer()
 	delete[] m_pDepthBufferPixels;
 	m_pDepthBufferPixels = nullptr;
 
-	if (m_pBackBuffer) {
+	if (m_pBackBuffer) 
+	{
 		SDL_FreeSurface(m_pBackBuffer);
 		m_pBackBuffer = nullptr;
 	}
-
-	if (m_pFrontBuffer) {
+	
+	if (m_pFrontBuffer) 
+	{
 		SDL_FreeSurface(m_pFrontBuffer);
 		m_pFrontBuffer = nullptr;
 	}
-
-	if (m_pWindow) {
+	
+	if (m_pWindow) 
+	{
 		SDL_DestroyWindow(m_pWindow);
 		m_pWindow = nullptr;
 	}
@@ -87,7 +93,6 @@ Renderer::~Renderer()
 	m_pBackBufferPixels = nullptr;
 }
 
-//Update function for the renderer
 void Renderer::Update(Timer* pTimer)
 {
 	m_Camera.Update(pTimer);
@@ -98,68 +103,55 @@ void Renderer::Update(Timer* pTimer)
 	}
 }
 
-//Toggle between render modes
 void Renderer::SwitchDepthBuffer()
 {
-	switch (m_RenderMode)
-	{
-	case RenderMode::DEPTHBUFFER:
-		m_RenderMode = RenderMode::COMBINED;
-		std::cout << "Current render mode : combined" << std::endl;
-		break;
-	default:
-		m_RenderMode = RenderMode::DEPTHBUFFER;
-		std::cout << "Current render mode : depth buffer" << std::endl;
-		break;
-	}
+	m_DepthBufferEnabled = !m_DepthBufferEnabled;
+
+	std::cout << "Depth buffer -> " << ((m_DepthBufferEnabled) ? "On" : "Off") << std::endl;
 }
 
 void Renderer::ToggleNormalMap()
 {
 	m_UseNormalMap = !m_UseNormalMap;
 
-	std::cout << "Normal map is " << ((m_UseNormalMap) ? "On" : "Off") << std::endl;
+	std::cout << "Normal map -> " << ((m_UseNormalMap) ? "On" : "Off") << std::endl;
 }
 
 void Renderer::ToggleRotateMesh()
 {
 	m_RotateMesh = !m_RotateMesh;
 
-	std::cout << "Rotating mesh is " << ((m_RotateMesh) ? "On" : "Off") << std::endl;
+	std::cout << "Rotating mesh -> " << ((m_RotateMesh) ? "On" : "Off") << std::endl;
 }
 
-//Cycle through RenderModes
-void Renderer::SwitchRenderMode()
+void Renderer::CycleShadingMode()
 {
-	int newMode = int(m_RenderMode) + 1;
-	if (newMode > 3) newMode = 0;
-
-	m_RenderMode = RenderMode(newMode);
-
-	switch (m_RenderMode)
+	switch (m_ShadingMode)
 	{
-	case RenderMode::COMBINED:
-		std::cout << "Render mode: combined" << std::endl;
+	case ShadingMode::COMBINED:
+		m_ShadingMode = ShadingMode::OBSERVEDAREA;
+		std::cout << "Shading mode -> observed area" << std::endl;
 		break;
-	case RenderMode::OBSERVEDAREA:
-		std::cout << "Render mode: observed area" << std::endl;
+	case ShadingMode::OBSERVEDAREA:
+		m_ShadingMode = ShadingMode::DIFFUSE;
+		std::cout << "Shading mode -> diffuse" << std::endl;
 		break;
-	case RenderMode::DIFFUSE:
-		std::cout << "Render mode: diffuse" << std::endl;
+	case ShadingMode::DIFFUSE:
+		m_ShadingMode = ShadingMode::SPECULAR;
+		std::cout << "Shading mode -> specular" << std::endl;
 		break;
-	case RenderMode::SPECULAR:
-		std::cout << "Render mode: specular" << std::endl;
+	case ShadingMode::SPECULAR:
+		m_ShadingMode = ShadingMode::COMBINED;
+		std::cout << "Shading mode -> combined" << std::endl;
 		break;
 	}
 }
 
 void Renderer::Render()
 {
-	// Lock the back buffer for rendering
 	SDL_LockSurface(m_pBackBuffer);
 	SDL_FillRect(m_pBackBuffer, nullptr, ColorToUint32(colors::Gray));
 
-	// Initialize depth buffer to maximum depth
 	std::fill(m_pDepthBufferPixels, m_pDepthBufferPixels + (m_Width * m_Height), FLT_MAX);
 
 	for (Mesh& mesh : m_Meshes)
@@ -168,7 +160,6 @@ void Renderer::Render()
 		int vertexIncrement{};
 		size_t frustumVerticesCount{};
 
-		// Determine parameters based on topology type
 		if (mesh.primitiveTopology == PrimitiveTopology::TriangleList)
 		{
 			skipVertices = 0;
@@ -182,10 +173,8 @@ void Renderer::Render()
 			frustumVerticesCount = mesh.indices.size() - 2;
 		}
 
-		// Transform and project vertices
 		VertexTransformationFunction(mesh.vertices, mesh.vertices_out, mesh.worldMatrix);
 
-		// Adjust vertices to screen space
 		for (auto& vertex : mesh.vertices_out)
 		{
 			if (vertex.inFrustum)
@@ -195,12 +184,11 @@ void Renderer::Render()
 			}
 		}
 
-		// Process triangles
-		for (size_t i = 0; i < mesh.indices.size() - skipVertices; i += vertexIncrement)
+		for (size_t i{}; i < mesh.indices.size() - skipVertices; i += vertexIncrement)
 		{
-			int idx0 = mesh.indices[i];
-			int idx1 = mesh.indices[i + 1];
-			int idx2 = mesh.indices[i + 2];
+			int idx0{ static_cast<int>(mesh.indices[i]) };
+			int idx1{ static_cast<int>(mesh.indices[i + 1]) };
+			int idx2{ static_cast<int>(mesh.indices[i + 2]) };
 
 			if (!mesh.vertices_out[idx0].inFrustum ||
 				!mesh.vertices_out[idx1].inFrustum ||
@@ -228,14 +216,14 @@ void Renderer::Render()
 
 			Vector2 edges[] = { v1 - v0, v2 - v1, v0 - v2 };
 
-			// Rasterize triangle
-			for (int px = minX; px < maxX; ++px)
+			// triangle rasyerization
+			for (int px{ minX }; px < maxX; ++px)
 			{
-				for (int py = minY; py < maxY; ++py)
+				for (int py{ minY }; py < maxY; ++py)
 				{
 					Vector2 pixelPos{ (float)px + 0.5f, (float)py + 0.5f };
 
-					float edgeTests[] = {
+					float edgeTests[]{
 						Vector2::Cross(edges[0], pixelPos - v0),
 						Vector2::Cross(edges[1], pixelPos - v1),
 						Vector2::Cross(edges[2], pixelPos - v2)
@@ -244,10 +232,10 @@ void Renderer::Render()
 					if ((edgeTests[0] > 0 && edgeTests[1] > 0 && edgeTests[2] > 0) ||
 						(edgeTests[0] < 0 && edgeTests[1] < 0 && edgeTests[2] < 0))
 					{
-						float totalWeight = edgeTests[0] + edgeTests[1] + edgeTests[2];
-						float w0 = edgeTests[1] / totalWeight;
-						float w1 = edgeTests[2] / totalWeight;
-						float w2 = edgeTests[0] / totalWeight;
+						float totalWeight{ edgeTests[0] + edgeTests[1] + edgeTests[2] };
+						float w0{ edgeTests[1] / totalWeight };
+						float w1{ edgeTests[2] / totalWeight };
+						float w2{ edgeTests[0] / totalWeight };
 
 						float interpolatedDepth = 1.0f / (
 							(1.0f / mesh.vertices_out[idx0].position.z) * w0 +
@@ -258,7 +246,6 @@ void Renderer::Render()
 
 						if (interpolatedDepth < m_pDepthBufferPixels[bufferIdx])
 						{
-							// Interpolate attributes for shading
 							Vector2 interpolatedUV = (
 								mesh.vertices[idx0].uv * w0 +
 								mesh.vertices[idx1].uv * w1 +
@@ -288,7 +275,8 @@ void Renderer::Render()
 								interpolatedUV,
 								interpolatedNormal,
 								interpolatedTangent,
-								interpolatedViewDirection };
+								interpolatedViewDirection 
+							};
 
 							PixelShading(shaderData, bufferIdx);
 							m_pDepthBufferPixels[bufferIdx] = interpolatedDepth;
@@ -299,7 +287,6 @@ void Renderer::Render()
 		}
 	}
 
-	// Update the SDL surface
 	SDL_UnlockSurface(m_pBackBuffer);
 	SDL_BlitSurface(m_pBackBuffer, nullptr, m_pFrontBuffer, nullptr);
 	SDL_UpdateWindowSurface(m_pWindow);
@@ -355,7 +342,7 @@ bool Renderer::SaveBufferToImage() const
 
 void Renderer::PixelShading(const Vertex_Shader& shaderVertex, int indexBuffer)
 {
-	ColorRGB color{};
+	ColorRGB finalColor{};
 	Vector3 normal{};
 
 	if (m_UseNormalMap)
@@ -364,53 +351,56 @@ void Renderer::PixelShading(const Vertex_Shader& shaderVertex, int indexBuffer)
 		const Matrix tangentSpaceAxis{ shaderVertex.tangent, biNormal, shaderVertex.normal, Vector3::Zero };
 		normal = tangentSpaceAxis.TransformVector(m_pNormalMap->SampleNormal(shaderVertex.uv));
 	}
-	else normal = shaderVertex.normal;
+	else
+	{
+		normal = shaderVertex.normal;
+	}
 
 	const float observedArea{ std::clamp(Vector3::Dot(-m_LightDirection, normal), 0.0f, 1.0f) };
 
+	if (m_DepthBufferEnabled)
+	{
+		finalColor = colors::White * Remap(shaderVertex.depth, 0.995f, 1.0f);
+	}
+	else
+	{
+		switch (m_ShadingMode)
+		{
+		case ShadingMode::OBSERVEDAREA:
+		{
+			finalColor = ColorRGB{ observedArea, observedArea, observedArea };
+			break;
+		}
+		case ShadingMode::DIFFUSE:
+		{
+			finalColor = observedArea * BRDF::Lambert(m_LightIntensity, m_pDiffuseMap->Sample(shaderVertex.uv));
+			break;
+		}
+		case ShadingMode::SPECULAR:
+		{
+			const float sampledSpecular{ m_pSpecularMap->Sample(shaderVertex.uv).r };
+			const float sampledPhongExponent{ m_pGlossMap->Sample(shaderVertex.uv).r };
+			finalColor = observedArea * BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, m_LightDirection, shaderVertex.viewDirection, normal);
+			break;
+		}
+		case ShadingMode::COMBINED:
+		{
+			const float sampledSpecular{ m_pSpecularMap->Sample(shaderVertex.uv).r };
+			const float sampledPhongExponent{ m_pGlossMap->Sample(shaderVertex.uv).r };
+			finalColor = observedArea * BRDF::Lambert(m_LightIntensity, m_pDiffuseMap->Sample(shaderVertex.uv)) +
+				observedArea * BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, m_LightDirection, shaderVertex.viewDirection, normal) +
+				m_Ambient;
+			break;
+		}
+		}
+	}
 	
-	
-	switch (m_RenderMode)
-	{
-	case RenderMode::DEPTHBUFFER:
-	{
-		color = colors::White * Remap(shaderVertex.depth, 0.995f, 1.0f);
-		break;
-	}
-	case RenderMode::OBSERVEDAREA:
-	{
-		color = ColorRGB{ observedArea, observedArea, observedArea };
-		break;
-	}
-	case RenderMode::DIFFUSE:
-	{
-		color = observedArea * BRDF::Lambert(m_LightIntensity, m_pDiffuseMap->Sample(shaderVertex.uv));
-		break;
-	}
-	case RenderMode::SPECULAR:
-	{
-		const float sampledSpecular{ m_pSpecularMap->Sample(shaderVertex.uv).r };
-		const float sampledPhongExponent{ m_pGlossMap->Sample(shaderVertex.uv).r };
-		color = observedArea * BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, m_LightDirection, shaderVertex.viewDirection, normal);
-		break;
-	}
-	case RenderMode::COMBINED:
-	{
-		const float sampledSpecular{ m_pSpecularMap->Sample(shaderVertex.uv).r };
-		const float sampledPhongExponent{ m_pGlossMap->Sample(shaderVertex.uv).r };
-		color = observedArea * BRDF::Lambert(m_LightIntensity, m_pDiffuseMap->Sample(shaderVertex.uv)) +
-			observedArea * BRDF::Phong(sampledSpecular, sampledPhongExponent * m_Shininess, m_LightDirection, shaderVertex.viewDirection, normal) +
-			m_Ambient;
-		break;
-	}
-	}
-	
-	color.MaxToOne();
+	finalColor.MaxToOne();
 
 	m_pBackBufferPixels[indexBuffer] = SDL_MapRGB(m_pBackBuffer->format,
-		static_cast<uint8_t>(color.r * 255),
-		static_cast<uint8_t>(color.g * 255),
-		static_cast<uint8_t>(color.b * 255));
+		static_cast<uint8_t>(finalColor.r * 255),
+		static_cast<uint8_t>(finalColor.g * 255),
+		static_cast<uint8_t>(finalColor.b * 255));
 }
 
 float Renderer::Remap(float v, float min, float max) const
