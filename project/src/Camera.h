@@ -96,7 +96,9 @@ namespace dae
 			if (isLeftMouseDown)
 			{
 				if (isRightMouseDown)
+				{
 					origin += up * float(mouseY) * moveSpeed;
+				}
 				else
 				{
 					origin -= forward * float(mouseY) * moveSpeed;
